@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+	xmlns:bean="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:jms="http://www.springframework.org/schema/jms" xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/batch 
+    http://www.springframework.org/schema/batch/spring-batch.xsd
+    http://www.springframework.org/schema/task
+    http://www.springframework.org/schema/task/spring-task.xsd
+    http://www.springframework.org/schema/integration 
+    http://www.springframework.org/schema/integration/spring-integration-4.3.xsd
+    http://www.springframework.org/schema/integration/jms 
+    http://www.springframework.org/schema/integration/jms/spring-integration-jms-4.3.xsd
+    http://www.springframework.org/schema/jms 
+    http://www.springframework.org/schema/jms/spring-jms.xsd
+    http://activemq.apache.org/schema/core 
+    http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+	<bean:import resource="classpath:job-jdbc-context.xml" />
+	
+	<job id="partitionJob">
+		<step id="partitionStep">
+			<partition step="partitionReadWriteDB" partitioner="partitionerDB">
+				<handler grid-size="3" task-executor="taskExecutor" />
+			</partition>
+		</step>
+	</job>
+
+	<step id="partitionReadWriteDB">
+		<tasklet>
+			<chunk reader="jdbcItemPageReader" processor="creditBillProcessor"
+				writer="jdbcItemWriter" commit-interval="5">
+				<listeners>
+					<listener ref="partitionItemReadListener"/>
+				</listeners>
+			</chunk>
+		</tasklet>
+	</step>
+
+	<bean:bean id="partitionerDB"
+		class="fun.deepsky.springbatch.parallel.partition.db.DBpartition">
+		<bean:property name="table" value="t_credit" />
+		<bean:property name="column" value="ID" />
+		<bean:property name="dataSource" ref="dataSource"/>
+	</bean:bean>
+
+	<bean:bean id="jdbcItemPageReader" scope="step"
+		class="org.springframework.batch.item.database.JdbcPagingItemReader">
+		<bean:property name="dataSource" ref="dataSource"/>
+		<bean:property name="queryProvider" ref="refQueryProvider"/>
+		<bean:property name="pageSize" value="2"/>
+		<bean:property name="rowMapper" ref="custCreditRowMapper"/>
+	</bean:bean>
+
+	<bean:bean id="refQueryProvider" scope="step" class="org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean">
+	<bean:property name="dataSource" ref="dataSource"/>
+	<bean:property name="selectClause" value="select ID,ACCOUNTID,NAME,AMOUNT,DATE,ADDRESS"/>
+	<bean:property name="fromClause" value="from t_credit"/>
+	<bean:property name="whereClause" value="where ID between #{stepExecutionContext[_minRecord]} and #{stepExecutionContext[_maxRecord]}"/>
+	<bean:property name="sortKey" value="ID"/>
+	</bean:bean>
+
+	<bean:bean id="custCreditRowMapper" class="fun.deepsky.springbatch.parallel.partition.db.CustCreditRowMapper"/>
+
+	<bean:bean id="creditBillProcessor"
+		class="fun.deepsky.springbatch.parallel.partition.db.CreditBillProcessor"/>
+		
+		
+	<bean:bean id="jdbcItemWriter"
+		class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+		<bean:property name="dataSource" ref="dataSource" />
+		<bean:property name="sql"
+			value="insert into t_destcredit (ID,ACCOUNTID,NAME,AMOUNT,DATE,ADDRESS) values (:id,:accountID,:name,:amount,:date,:address)" />
+		<bean:property name="itemSqlParameterSourceProvider">
+			<bean:bean
+				class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider" />
+		</bean:property>
+	</bean:bean>
+
+	<bean:bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<bean:property name="corePoolSize" value="20"/>
+		<bean:property name="maxPoolSize" value="25"/>
+	</bean:bean>
+	
+	    <bean:bean id="partitionItemReadListener"
+		class="fun.deepsky.springbatch.parallel.partition.db.PartitionStepExecutionListener">
+	</bean:bean>
+	
+	
+</bean:beans>

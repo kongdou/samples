@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+	xmlns:bean="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:jms="http://www.springframework.org/schema/jms" xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/batch 
+    http://www.springframework.org/schema/batch/spring-batch.xsd
+    http://www.springframework.org/schema/task
+    http://www.springframework.org/schema/task/spring-task.xsd
+    http://www.springframework.org/schema/integration 
+    http://www.springframework.org/schema/integration/spring-integration-4.3.xsd
+    http://www.springframework.org/schema/integration/jms 
+    http://www.springframework.org/schema/integration/jms/spring-integration-jms-4.3.xsd
+    http://www.springframework.org/schema/jms 
+    http://www.springframework.org/schema/jms/spring-jms.xsd
+    http://activemq.apache.org/schema/core 
+    http://activemq.apache.org/schema/core/activemq-core.xsd">
+	
+	<bean:import resource="classpath:job-jdbc-context.xml" />
+
+	<!-- 获取ActiveMQ提供的ConnectionFactory -->
+	<amq:connectionFactory id="connectionFactory"
+		brokerURL="tcp://localhost:61616" />
+		
+	<!-- Master job -->
+	<job id="partitionRemoteJob">
+		<step id="partitionRemoteStep">
+			<partition partitioner="partitioner" handler="partitionHandler" />
+		</step>
+	</job>
+
+	<bean:bean id="partitioner"
+		class="org.springframework.batch.core.partition.support.MultiResourcePartitioner">
+		<bean:property name="keyName" value="fileName" />
+		<bean:property name="resources" value="file:target/classes/data/flat/*.csv" />
+	</bean:bean>
+
+	<bean:bean id="partitionHandler"
+		class="org.springframework.batch.integration.partition.MessageChannelPartitionHandler">
+		<bean:property name="messagingOperations">
+			<bean:bean class="org.springframework.integration.core.MessagingTemplate">
+				<bean:property name="defaultChannel" ref="MasterRequestChannel" />
+				<bean:property name="receiveTimeout" value="30000" />
+			</bean:bean>
+		</bean:property>
+		<bean:property name="replyChannel" ref="AggregatedChannel" />
+		<bean:property name="stepName" value="remoteStep" />
+		<bean:property name="gridSize" value="3" />
+	</bean:bean>
+	
+	<!-- Master jms -->
+	<int:channel id="MasterRequestChannel">
+		<int:dispatcher task-executor="RequestPublishExecutor" />
+	</int:channel>
+	<task:executor id="RequestPublishExecutor" pool-size="10-15"
+		queue-capacity="0" />
+	<!-- <int-jms:outbound-channel-adapter connection-factory="connectionFactory" 
+		destination-name="RequestQueue" channel="MasterRequestChannel"/> -->
+
+	<int:channel id="MasterReplyChannel" />
+	<!-- <int-jms:message-driven-channel-adapter connection-factory="connectionFactory" 
+		destination-name="ReplyQueue" channel="MasterReplyChannel"/> -->
+
+	<int-jms:outbound-gateway connection-factory="connectionFactory"
+		correlation-key="JMSCorrelationID" request-channel="MasterRequestChannel"
+		request-destination-name="RequestQueue" receive-timeout="30000"
+		reply-channel="MasterReplyChannel" reply-destination-name="ReplyQueue"
+		async="true">
+		<int-jms:reply-listener />
+	</int-jms:outbound-gateway>
+
+	<int:channel id="AggregatedChannel">
+		<int:queue />
+	</int:channel>
+	<int:aggregator ref="partitionHandler" input-channel="MasterReplyChannel"
+		output-channel="AggregatedChannel" />
+	
+</bean:beans>

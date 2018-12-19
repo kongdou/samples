@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+	xmlns:bean="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd  
+    http://www.springframework.org/schema/tx 
+    http://www.springframework.org/schema/tx/spring-tx-3.0.xsd  
+    http://www.springframework.org/schema/aop 
+    http://www.springframework.org/schema/aop/spring-aop-3.0.xsd  
+    http://www.springframework.org/schema/context 
+    http://www.springframework.org/schema/context/spring-context-2.5.xsd
+    http://www.springframework.org/schema/batch 
+    http://www.springframework.org/schema/batch/spring-batch-2.2.xsd">
+	<bean:import resource="classpath:job-jdbc-context.xml" />
+
+	<job id="mutiThreadDbJob" restartable="true">
+		<step id="mutiThreadDbStep">
+			<tasklet task-executor="taskExecutor" throttle-limit="5"
+				start-limit="5">
+				<chunk reader="creditBillItemReader" processor="creditBillProcessor"
+					writer="jdbcSetterItemWriter" commit-interval="4">
+				</chunk>
+			</tasklet>
+		</step>
+	</job>
+
+	<job id="mutiThreadDbRestartJob" restartable="true">
+		<step id="mutiThreadDbRestartStep">
+			<tasklet task-executor="taskExecutor" throttle-limit="5"
+				start-limit="5">
+				<chunk reader="creditBillItemRestartReader" processor="creditBillRestartProcessor"
+					writer="jdbcSetterItemWriter" commit-interval="4">
+				</chunk>
+			</tasklet>
+		</step>
+	</job>
+
+
+	<bean:bean id="taskExecutor"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<bean:property name="corePoolSize" value="5" />
+		<bean:property name="maxPoolSize" value="15" />
+	</bean:bean>
+
+
+	<bean:bean id="creditBillItemReader"
+		class="fun.deepsky.springbatch.parallel.mutithread.SynchronizedItemReader">
+		<bean:property name="delegate" ref="jdbcItemReader" />
+	</bean:bean>
+
+	<bean:bean id="creditBillItemRestartReader"
+		class="fun.deepsky.springbatch.parallel.mutithread.SynchronizedItemReader">
+		<bean:property name="delegate" ref="jdbcItemRestartReader" />
+	</bean:bean>
+
+	<bean:bean id="jdbcItemReader" scope="step"
+		class="org.springframework.batch.item.database.JdbcCursorItemReader">
+		<bean:property name="dataSource" ref="dataSource" />
+		<bean:property name="sql"
+			value="select ID,ACCOUNTID,NAME,AMOUNT,DATE,ADDRESS from t_credit" />
+		<bean:property name="verifyCursorPosition" value="false" />
+		<bean:property name="saveState" value="false" />
+		<bean:property name="rowMapper">
+			<bean:bean class="org.springframework.jdbc.core.BeanPropertyRowMapper">
+				<bean:property name="mappedClass"
+					value="fun.deepsky.springbatch.parallel.mutithread.CreditBill" />
+			</bean:bean>
+		</bean:property>
+	</bean:bean>
+
+	<bean:bean id="creditBillProcessor"
+		class="fun.deepsky.springbatch.parallel.mutithread.CreditBillProcessor">
+
+	</bean:bean>
+
+	<bean:bean id="jdbcItemRestartReader" scope="step"
+		class="org.springframework.batch.item.database.JdbcCursorItemReader">
+		<bean:property name="dataSource" ref="dataSource" />
+		<bean:property name="sql"
+			value="select ID,ACCOUNTID,NAME,AMOUNT,DATE,ADDRESS from t_credit where flag = 'false'" />
+		<bean:property name="verifyCursorPosition" value="false" />
+		<bean:property name="saveState" value="false" />
+		<bean:property name="rowMapper">
+			<bean:bean class="org.springframework.jdbc.core.BeanPropertyRowMapper">
+				<bean:property name="mappedClass"
+					value="fun.deepsky.springbatch.parallel.mutithread.CreditBill" />
+			</bean:bean>
+		</bean:property>
+	</bean:bean>
+
+	<bean:bean id="creditBillRestartProcessor"
+		class="fun.deepsky.springbatch.parallel.mutithread.CreditBillRestartProcessor">
+		<bean:property name="jdbcTemplate" ref="jdbcTemplate"/>
+	</bean:bean>
+
+	<bean:bean id="jdbcSetterItemWriter"
+		class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+		<bean:property name="dataSource" ref="dataSource" />
+		<bean:property name="sql"
+			value="insert into t_destcredit(ID,ACCOUNTID,NAME,AMOUNT,DATE,ADDRESS) values(?,?,?,?,?,?)" />
+		<bean:property name="itemPreparedStatementSetter">
+			<bean:bean
+				class="fun.deepsky.springbatch.parallel.mutithread.DestCreditBillItemPreparedStatementSetter" />
+		</bean:property>
+	</bean:bean>
+
+</bean:beans>

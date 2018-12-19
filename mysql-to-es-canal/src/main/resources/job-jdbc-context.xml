@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean:beans xmlns="http://www.springframework.org/schema/batch"
+	xmlns:bean="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd  
+    http://www.springframework.org/schema/tx 
+    http://www.springframework.org/schema/tx/spring-tx-3.0.xsd  
+    http://www.springframework.org/schema/aop 
+    http://www.springframework.org/schema/aop/spring-aop-3.0.xsd  
+    http://www.springframework.org/schema/context 
+    http://www.springframework.org/schema/context/spring-context-2.5.xsd
+    http://www.springframework.org/schema/batch 
+    http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+    http://www.springframework.org/schema/task 
+    http://www.springframework.org/schema/task/spring-task-3.0.xsd
+    http://www.springframework.org/schema/jdbc
+    http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd">
+	<!-- jdbc配置文件 -->
+	<context:property-placeholder location="classpath:mysql.properties" />
+	
+	<!-- 数据源 -->
+	<bean:bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<bean:property name="driverClassName" value="${datasource.driver}" />
+		<bean:property name="url" value="${datasource.url}" />
+		<bean:property name="username" value="${datasource.username}" />
+		<bean:property name="password" value="${datasource.password}" />
+	</bean:bean>
+
+	<!-- 定义事务管理器 -->
+	<bean:bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<bean:property name="dataSource" ref="dataSource"></bean:property>
+	</bean:bean>
+
+	<!-- 作业仓库，任何任务的操作都会记录在作业仓库中，作业仓库有两种，内存和数据库 		-->
+	<job-repository id="jobRepository" data-source="dataSource"
+		transaction-manager="transactionManager" isolation-level-for-create="SERIALIZABLE"
+		table-prefix="BATCH_" max-varchar-length="1000"/>
+
+	<!-- 作业调度器，用来启动job -->
+	<bean:bean id="jobLauncher"
+		class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+		<bean:property name="jobRepository" ref="jobRepository"></bean:property>
+	</bean:bean>
+	
+	<bean:bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<bean:property name="dataSource" ref="dataSource"/>
+	</bean:bean>
+	
+	<bean:bean id="stepLocator" 
+		class="org.springframework.batch.integration.partition.BeanFactoryStepLocator" />
+	
+    <bean:bean id="jobRegistry" 
+        class="org.springframework.batch.core.configuration.support.MapJobRegistry" />
+    
+    <bean:bean id="jobExplorer"
+		class="org.springframework.batch.core.explore.support.JobExplorerFactoryBean">
+		<bean:property name="dataSource" ref="dataSource" />	
+	</bean:bean>
+	
+    <bean:bean id="jobOperator" 
+        class="org.springframework.batch.core.launch.support.SimpleJobOperator">
+    	<bean:property name="jobRepository" ref="jobRepository" />
+    	<bean:property name="jobLauncher" ref="jobLauncher" />    	
+    	<bean:property name="jobRegistry" ref="jobRegistry" />
+    	<bean:property name="jobExplorer" ref="jobExplorer" />
+    </bean:bean>
+	
+	
+	
+</bean:beans>
+	

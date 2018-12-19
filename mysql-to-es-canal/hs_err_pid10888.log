@@ -1,0 +1,68 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 262160 bytes for Chunk::new
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   In 32 bit mode, the process size limit was hit
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Use 64 bit Java on a 64 bit OS
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (allocation.cpp:317), pid=10888, tid=7424
+#
+# JRE version: 6.0_29-b11
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (20.4-b02 mixed mode windows-amd64 compressed oops)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000000000200e000):  JavaThread "C2 CompilerThread0" daemon [_thread_in_native, id=7424, stack(0x00000000065d0000,0x00000000066d0000)]
+
+Stack: [0x00000000065d0000,0x00000000066d0000]
+
+Current CompileTask:
+C2:  11702 596      com.thoughtworks.xstream.io.path.PathTrackingWriter.endNode()V (12 bytes)
+
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+  0x00000000070a1000 JavaThread "taskExecutor-1" [_thread_in_native, id=11740, stack(0x00000000086d0000,0x00000000087d0000)]
+  0x00000000075ce800 JavaThread "Abandoned connection cleanup thread" daemon [_thread_blocked, id=11472, stack(0x00000000085a0000,0x00000000086a0000)]
+  0x0000000002022800 JavaThread "Low Memory Detector" daemon [_thread_blocked, id=11212, stack(0x00000000067d0000,0x00000000068d0000)]
+  0x000000000201a000 JavaThread "C2 CompilerThread1" daemon [_thread_in_native, id=10560, stack(0x00000000066d0000,0x00000000067d0000)]
+=>0x000000000200e000 JavaThread "C2 CompilerThread0" daemon [_thread_in_native, id=7424, stack(0x00000000065d0000,0x00000000066d0000)]
+  0x000000000200b000 JavaThread "Attach Listener" daemon [_thread_blocked, id=11176, stack(0x00000000064d0000,0x00000000065d0000)]
+  0x0000000002008000 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=10996, stack(0x00000000063d0000,0x00000000064d0000)]
+  0x0000000001ff8800 JavaThread "Finalizer" daemon [_thread_blocked, id=12204, stack(0x00000000060d0000,0x00000000061d0000)]
+  0x0000000001fef800 JavaThread "Reference Handler" daemon [_thread_blocked, id=1316, stack(0x0000000005fd0000,0x00000000060d0000)]
+  0x000000000021d800 JavaThread "main" [_thread_blocked, id=6512, stack(0x0000000001e30000,0x0000000001f30000)]
+
+Other Threads:
+  0x0000000001fe9000 VMThread [stack: 0x0000000005ed0000,0x0000000005fd0000] [id=780]
+  0x0000000002023800 WatcherThread [stack: 0x00000000068d0000,0x00000000069d0000] [id=9296]
+
+VM state:not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap
+ PSYoungGen      total 33984K, used 20954K [0x00000000e5560000, 0x00000000e8840000, 0x0000000100000000)
+  eden space 28800K, 54% used [0x00000000e5560000,0x00000000e64d65a8,0x00000000e7180000)
+  from space 5184K, 98% used [0x00000000e7220000,0x00000000e77205c0,0x00000000e7730000)
+  to   space 11648K, 0% used [0x00000000e7ce0000,0x00000000e7ce0000,0x00000000e8840000)
+ PSOldGen        total 86400K, used 13933K [0x00000000b0000000, 0x00000000b5460000, 0x00000000e5560000)
+  object space 86400K, 16% used [0x00000000b0000000,0x00000000b0d9b430,0x00000000b5460000)
+ PSPermGen       total 22784K, used 22622K [0x00000000aae00000, 0x00000000ac440000, 0x00000000b0000000)
+  object space 22784K, 99% used [0x00000000aae00000,0x00000000ac417b80,0x00000000ac440000)
+
+Code Cache  [0x0000000002030000, 0x00000000022a0000, 0x0000000005030000)
+ total_blobs=937 nmethods=610 adapters=280 free_code_cache=47955264 largest_free_block=13632
+
+Dynamic libraries:
