@@ -1,5 +1,4 @@
-package fun.deepsky.springbatch.parallel.mutithread;
-
+package fun.deepsky.samples.canal.mutithread;
 
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemReader;
@@ -9,25 +8,16 @@ import org.springframework.batch.item.NonTransientResourceException;
 import org.springframework.batch.item.ParseException;
 import org.springframework.batch.item.UnexpectedInputException;
 
-public class SynchronizedItemReader implements ItemReader<CreditBill>,ItemStream{
+public class SynchronizedItemReader implements ItemReader<Engage>,ItemStream{
 
-	private ItemReader<CreditBill> delegate;
+	private ItemReader<Engage> delegate;
 	
 	@Override
-	public synchronized CreditBill read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
-		CreditBill creditBill = delegate.read();
-		if(creditBill != null) {
-			System.out.println(Thread.currentThread().getName()+" read credit: "+creditBill.getId());
-		}
-		return creditBill;
-	}
-
-	@Override
 	public void open(ExecutionContext executionContext) throws ItemStreamException {
+		// TODO Auto-generated method stub
 		if(this.delegate instanceof ItemStream) {
 			((ItemStream)this.delegate).open(executionContext);
 		}
-		
 	}
 
 	@Override
@@ -46,16 +36,20 @@ public class SynchronizedItemReader implements ItemReader<CreditBill>,ItemStream
 		}
 	}
 
-	public ItemReader<CreditBill> getDelegate() {
+	@Override
+	public Engage read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
+		Engage engage = delegate.read();
+		if(engage != null) {
+			System.out.println(Thread.currentThread().getName()+" read proposalno: "+engage.getProno());
+		}
+		return engage;
+	}
+
+	public ItemReader<Engage> getDelegate() {
 		return delegate;
 	}
 
-	public void setDelegate(ItemReader<CreditBill> delegate) {
+	public void setDelegate(ItemReader<Engage> delegate) {
 		this.delegate = delegate;
 	}
-	
-	
-	
-	
-
 }

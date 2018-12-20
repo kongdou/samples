@@ -1,26 +1,31 @@
-package fun.deepsky.samples.canal;
+package fun.deepsky.samples.canal.mutithread;
 
 import java.io.Serializable;
 
-public class PrpCengage implements Serializable {
-
+public class Engage implements Serializable {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -3785755853169364460L;
-	private String proposalno;
+	private String prono;
 	private String riskcode;
 	private String serialno;
 	private String clausecode;
 	private String clausename;
 	private String engageflag;
-
-	public String getProposalno() {
-		return proposalno;
+	private String max_count;
+	private String clauses;
+	private String engagetype;
+	private String inserttimeforhis;
+	private String flag;
+	private String operatetimeforhis;
+	
+	public String getProno() {
+		return prono;
 	}
 
-	public void setProposalno(String proposalno) {
-		this.proposalno = proposalno;
+	public void setProno(String prono) {
+		this.prono = prono;
 	}
 
 	public String getRiskcode() {
@@ -110,12 +115,5 @@ public class PrpCengage implements Serializable {
 	public void setOperatetimeforhis(String operatetimeforhis) {
 		this.operatetimeforhis = operatetimeforhis;
 	}
-
-	private String max_count;
-	private String clauses;
-	private String engagetype;
-	private String inserttimeforhis;
-	private String flag;
-	private String operatetimeforhis;
 
 }

@@ -18,37 +18,41 @@
     http://www.springframework.org/schema/jms/spring-jms.xsd
     http://activemq.apache.org/schema/core 
     http://activemq.apache.org/schema/core/activemq-core.xsd">
-
-	<!-- <bean:import resource="classpath:ch11/job-context.xml" /> -->
 	<bean:import resource="classpath:job-jdbc-context.xml" />
-	<job id="partitionJob">
-		<step id="partitionStep">
-			<partition step="partitionReadWriteStep" partitioner="partitioner">
-				<handler grid-size="2" task-executor="taskExecutor" />
-			</partition>
+	<!-- 23W -->
+	<!-- 1 100 60s,
+	     1 200 50s,
+	     1 300 50s,
+	     1 500 45s,
+	     1 1000 35s
+	     1 2000 35s
+	     1 3000 35s,
+	     4 100 30s,
+	    10 200 22s,
+	    10 500 20s
+	    10 1000 20s
+	    -->
+	<!-- 多线程处理 -->
+	<job id="canalJob">
+		<step id="canalStep">
+			<tasklet task-executor="taskExecutor" throttle-limit="10">
+				<chunk reader="synchronizedItemReader" processor="creditBillProcessor" writer="jdbcItemWriter" commit-interval="1000"/>
+			</tasklet>
 		</step>
 	</job>
-
-	<step id="partitionReadWriteStep">
-		<tasklet>
-			<chunk reader="flatFileItemReader" processor="creditBillProcessor"
-				writer="jdbcItemWriter" commit-interval="2">
-				<listeners>
-					<listener ref="partitionItemReadListener"/>
-				</listeners>
-			</chunk>
-		</tasklet>
-	</step>
-
-	<bean:bean id="partitioner"
-		class="org.springframework.batch.core.partition.support.MultiResourcePartitioner">
-		<bean:property name="keyName" value="fileName" />
-		<bean:property name="resources" value="classpath:data/flat/*.csv" />
+	<bean:bean id="taskExecutor"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<bean:property name="corePoolSize" value="100" />
+		<bean:property name="maxPoolSize" value="100" />
 	</bean:bean>
-
-	<bean:bean id="flatFileItemReader" scope="step"
+	
+	<bean:bean id="synchronizedItemReader" class="fun.deepsky.samples.canal.mutithread.SynchronizedItemReader">
+	<bean:property name="delegate" ref="flatFileItemReader" />
+	</bean:bean>
+	
+	<bean:bean id="flatFileItemReader"
 		class="org.springframework.batch.item.file.FlatFileItemReader">
-		<bean:property name="resource" value="#{stepExecutionContext[fileName]}" />
+		<bean:property name="resource" value="classpath:/data/flat/engage.unl" />
 		<bean:property name="lineMapper" ref="lineMapper" />
 	</bean:bean>
 
@@ -60,37 +64,25 @@
 
 	<bean:bean id="delimitedLineTokenizer"
 		class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
-		<bean:property name="delimiter" value="," />
+		<bean:property name="delimiter" value="^" />
 		<bean:property name="names"
-			value="id,accountID,name,amount,date,address" />
+			value="prono,riskcode,serialno,clausecode,clausename,engageflag,max_count,clauses,engagetype,inserttimeforhis,flag,operatetimeforhis" />
 	</bean:bean>
 
 	<bean:bean id="creditBillFieldSetMapper"
-		class="fun.deepsky.springbatch.parallel.partition.file.CreditBillFieldSetMapper" />
+		class="fun.deepsky.samples.canal.mutithread.EengageFieldSetMapper" />
 
-	<bean:bean id="creditBillProcessor"
-		class="fun.deepsky.springbatch.parallel.partition.file.CreditBillProcessor"/>
-		
-		
+	<bean:bean id="creditBillProcessor" class="fun.deepsky.samples.canal.mutithread.EngageProcessor" />
+
 	<bean:bean id="jdbcItemWriter"
 		class="org.springframework.batch.item.database.JdbcBatchItemWriter">
 		<bean:property name="dataSource" ref="dataSource" />
 		<bean:property name="sql"
-			value="insert into t_destcredit (ID,ACCOUNTID,NAME,AMOUNT,DATE,ADDRESS) values (:id,:accountID,:name,:amount,:date,:address)" />
+			value="insert into engage (prono,riskcode,serialno,clausecode,clausename,engageflag,max_count,clauses,engagetype,inserttimeforhis,flag,operatetimeforhis) values (:prono,:riskcode,:serialno,:clausecode,:clausename,:engageflag,:max_count,:clauses,:engagetype,:inserttimeforhis,:flag,:operatetimeforhis)" />
 		<bean:property name="itemSqlParameterSourceProvider">
 			<bean:bean
 				class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider" />
 		</bean:property>
 	</bean:bean>
 
-	<bean:bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
-		<bean:property name="corePoolSize" value="20"/>
-		<bean:property name="maxPoolSize" value="25"/>
-	</bean:bean>
-	
-	    <bean:bean id="partitionItemReadListener"
-		class="fun.deepsky.springbatch.parallel.partition.file.PartitionStepExecutionListener">
-	</bean:bean>
-	
-	
 </bean:beans>
