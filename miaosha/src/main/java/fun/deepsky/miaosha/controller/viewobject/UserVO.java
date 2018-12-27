@@ -1,6 +1,6 @@
-package fun.deepsky.miaosha.service.model;
+package fun.deepsky.miaosha.controller.viewobject;
 
-public class UserModel {
+public class UserVO {
 
 	private Integer id;
 
@@ -11,12 +11,6 @@ public class UserModel {
 	private Integer age;
 
 	private String telphone;
-
-	private String registerMode;
-
-	private String thridPartyId;
-
-	private String encrptPassword;
 
 	public Integer getId() {
 		return id;
@@ -56,30 +50,6 @@ public class UserModel {
 
 	public void setTelphone(String telphone) {
 		this.telphone = telphone;
-	}
-
-	public String getRegisterMode() {
-		return registerMode;
-	}
-
-	public void setRegisterMode(String registerMode) {
-		this.registerMode = registerMode;
-	}
-
-	public String getThridPartyId() {
-		return thridPartyId;
-	}
-
-	public void setThridPartyId(String thridPartyId) {
-		this.thridPartyId = thridPartyId;
-	}
-
-	public String getEncrptPassword() {
-		return encrptPassword;
-	}
-
-	public void setEncrptPassword(String encrptPassword) {
-		this.encrptPassword = encrptPassword;
 	}
 
 }
